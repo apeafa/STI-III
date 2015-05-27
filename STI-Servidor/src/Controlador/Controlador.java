@@ -30,7 +30,7 @@ public class Controlador {
     
     public Controlador(int verbose){
         try {
-            conf = new Confidentiality();            
+            conf = new Confidentiality(verbose);            
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(Controlador.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -47,7 +47,7 @@ public class Controlador {
         //System.out.println(m.getMensagem());
         try {
             //System.out.println("TESTE:" + m.getMensagem());
-            desencriptado = conf.decrypt(m.getMensagem(), m.getChave(), m.getIv(), m.getID());
+            desencriptado = conf.decrypt(m.getMensagem(), m.getChave(), m.getIv(), m.getID(), verbose);
         } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | IOException | InvalidAlgorithmParameterException ex) {
             System.out.println("Erro: " + ex);
         }
@@ -62,7 +62,7 @@ public class Controlador {
         Mensagem encriptado = null;
         
         try {
-            encriptado = conf.encrypt(mensagem, 0);
+            encriptado = conf.encrypt(mensagem, 0, verbose);
         } catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | UnsupportedEncodingException | InvalidAlgorithmParameterException ex) {
             System.out.println("Erro");
         }
@@ -70,7 +70,7 @@ public class Controlador {
     }
     
     public Boolean comparaMD5(Mensagem msg){
-        MD5 comparaMensagem = new MD5(msg.getMensagem());
+        MD5 comparaMensagem = new MD5(msg.getMensagem(), verbose);
         if(verbose != 1){
             System.out.println("Mensagem com MD5 criado agora : " + comparaMensagem.getMessageDigest());
             System.out.println("Mensagem com MD5 criado origem: " + msg.getMD5Hash());
@@ -82,7 +82,7 @@ public class Controlador {
     }
     
     public String renovarChave(){
-        return conf.regenarateKey();
+        return conf.regenarateKey(verbose);
     }
     
     public int getVerbose(){

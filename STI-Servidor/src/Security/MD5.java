@@ -19,16 +19,20 @@ import java.util.logging.Logger;
 public final class MD5 implements Serializable{
     BigInteger bi;
     
-    public MD5(String message){
-        generateMD5(message);
+    public MD5(String message, int verbose){
+        generateMD5(message, verbose);
     }
     
-    public void generateMD5(String message){
+    public void generateMD5(String message, int verbose){
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("MD5");
             md.update(message.getBytes(), 0, message.length());
             bi = new BigInteger(1, md.digest());
+            
+            if(verbose != 1){
+                System.out.println("[MD5 HASH CRIADA] = " + bi);
+            }
         } catch (NoSuchAlgorithmException ex) {
             System.out.println("Erro ao criar MD5");
         }        

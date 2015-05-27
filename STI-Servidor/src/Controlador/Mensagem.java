@@ -20,12 +20,12 @@ public class Mensagem implements Serializable{
     byte[] iv;
     MD5 md5;
 
-    public Mensagem(String mensagem, byte[] chave, byte[] iv, int ID) {
+    public Mensagem(String mensagem, byte[] chave, byte[] iv, int ID, int verbose) {
         this.mensagem = mensagem;
         this.chave = chave;
         this.iv = iv;
         this.ID = ID;
-        md5 = new MD5(mensagem);
+        md5 = new MD5(mensagem, verbose);
     }
 
     public byte[] getIv() {

@@ -22,7 +22,7 @@ public class ChatClient implements Runnable
     private static Controlador controlador = null;
     
     // VARIAVEIS EXTRA
-    private static int VERBOSE = 2;
+    private static int VERBOSE = 1;
     
     public ChatClient(String serverName, int serverPort)
     {  
