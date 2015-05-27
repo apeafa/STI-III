@@ -13,6 +13,13 @@ import java.math.BigInteger;
  *
  * @author Erbi
  */
+
+// Esta classe é a que transporta todos os dados
+// transporta a mensagem encriptada
+// transporta a chave de quem a envia
+// o id de quem a envia
+// a seed iv
+// transporta a hash original da mensagem MD5 Check sum
 public class Mensagem implements Serializable{
     String mensagem;
     byte[] chave;

@@ -16,6 +16,8 @@ import java.util.logging.Logger;
  *
  * @author Erbi
  */
+
+// Esta classe tem como função gerar a hash do md5 check sum
 public final class MD5 implements Serializable{
     BigInteger bi;
     
@@ -23,6 +25,8 @@ public final class MD5 implements Serializable{
         generateMD5(message, verbose);
     }
     
+    // Função que gera a hash MD5
+    // Recebe a mensagem para realizar a hash da mesma
     public void generateMD5(String message, int verbose){
         MessageDigest md;
         try {

@@ -5,6 +5,7 @@
  */
 package Controlador;
 
+import NonSecurity.Ataques;
 import Security.Confidentiality;
 import Security.MD5;
 import java.io.IOException;
@@ -22,56 +23,85 @@ import javax.crypto.NoSuchPaddingException;
  *
  * @author Erbi
  */
+
+// Classe controlador é responsável por controlar as acções de cada cliente
 public class Controlador {
     static Confidentiality conf;
+    // Esta thread e variável são responsáveis pelo tempo de renovação de cada chave para cada cliente
     Thread t;
-    int verbose;
     private static int TIME_TO_REGENERATE_KEY = 10000;
+    //-------------------------------------------------------------------------------------------
+    private Ataques ataques;
     
-    public Controlador(int verbose){
+    // VARIAVEIS EXTRA    
+    private static int VERBOSE = 1;
+    private static Boolean ALTERA_MENSAGEM_PARA_MD5 = false;
+    private static Boolean ALTERA_CHAVE_CONFIDENCIALIDADE = false;
+    
+    public Controlador(){
+        ataques = new Ataques();
         try {
-            conf = new Confidentiality(verbose);            
+            conf = new Confidentiality(VERBOSE);            
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(Controlador.class.getName()).log(Level.SEVERE, null, ex);
         }
-        this.verbose = verbose;
         t = new Thread(new RenewKey(this));
         t.start();
         
-        if(verbose != 1){
+        if(VERBOSE != 1){
                 System.out.println("Criado controlador. Pronto para trabalhar");
             }
     }
+    
+    // Esta função é responsável por tratar da recepção de mensagems dos clientes
+    // a função recebe uma mensagem e irá mandar desencriptar a mesma, retornando a mensagem desencriptada
+    // irá também fazer a validação da HASH do MD5 CHECK SUM
     public Mensagem receberMensagem(Mensagem m){
         Mensagem desencriptado = null;
-        //System.out.println(m.getMensagem());
-        try {
-            //System.out.println("TESTE:" + m.getMensagem());
-            desencriptado = conf.decrypt(m.getMensagem(), m.getChave(), m.getIv(), m.getID(), verbose);
-        } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | IOException | InvalidAlgorithmParameterException ex) {
-            System.out.println("Erro: " + ex);
+        
+        if(ALTERA_CHAVE_CONFIDENCIALIDADE){
+            ataques.alteraChaveConfidencialidade(m, VERBOSE);
         }
-      
+        
+        try {
+            desencriptado = conf.decrypt(m.getMensagem(), m.getChave(), m.getIv(), m.getID(), VERBOSE);
+        } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | IOException | InvalidAlgorithmParameterException ex) {
+            System.out.println("Erro: " + ex);
+            return null;
+        }catch(BadPaddingException | IllegalArgumentException ex2){
+            System.out.println("Impossivel tratar mensagem, Chave/Mensagem alterada");
+            return null;
+        }
+        
+        if(ALTERA_MENSAGEM_PARA_MD5)
+            ataques.alteraMensagem(desencriptado, VERBOSE);
+        
+        // VALIDAçÂO da HASH DO md5 check sum para verificar se a mensagem é igual à origem
         if(!comparaMD5(desencriptado))
             desencriptado.setMensagem("A mensagem não está disponivel pois sofreu alterações");
         
         return desencriptado;
     }
     
+    
+    // Esta função é responsável por tratar do envio de mensagens dos clientes
+    // a função recebe uma mensagem e irá mandar encriptar a mesma, retornando a mensagem encriptada
     public Mensagem enviarMensagem(String mensagem){
         Mensagem encriptado = null;
         
         try {
-            encriptado = conf.encrypt(mensagem, 0, verbose);
+            encriptado = conf.encrypt(mensagem, 0, VERBOSE);
         } catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | UnsupportedEncodingException | InvalidAlgorithmParameterException ex) {
-            System.out.println("Erro");
+            System.out.println("Erro: " + ex);
         }
         return encriptado;
     }
     
+    // Esta função é responsável por comparar as HASH do MD5 CHECK SUM para verificar se a mensagem original
+    // sofreu alterações depois do seu envio
     public Boolean comparaMD5(Mensagem msg){
-        MD5 comparaMensagem = new MD5(msg.getMensagem(), verbose);
-        if(verbose != 1){
+        MD5 comparaMensagem = new MD5(msg.getMensagem(), VERBOSE);
+        if(VERBOSE != 1){
             System.out.println("Mensagem com MD5 criado agora : " + comparaMensagem.getMessageDigest());
             System.out.println("Mensagem com MD5 criado origem: " + msg.getMD5Hash());
         }
@@ -82,13 +112,14 @@ public class Controlador {
     }
     
     public String renovarChave(){
-        return conf.regenarateKey(verbose);
+        return conf.regenarateKey(VERBOSE);
     }
     
     public int getVerbose(){
-        return verbose;
+        return VERBOSE;
     }
-    
+
+    // Esta classe é lançada para que a chave seja renovada de TIME_TO_REGENERATE_KEY em TIME_TO_REGENERATE_KEY tempo
     public class RenewKey implements Runnable{
         Controlador c;
 

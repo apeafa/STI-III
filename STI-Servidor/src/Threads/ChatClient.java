@@ -21,8 +21,8 @@ public class ChatClient implements Runnable
     private ChatClientThread client    = null;
     private static Controlador controlador = null;
     
-    // VARIAVEIS EXTRA
-    private static int VERBOSE = 1;
+
+    
     
     public ChatClient(String serverName, int serverPort)
     {  
@@ -32,7 +32,7 @@ public class ChatClient implements Runnable
         {
             // Establishes connection with server (name and port)
             socket = new Socket(serverName, serverPort);
-            controlador = new Controlador(VERBOSE);
+            controlador = new Controlador();
             System.out.println("Connected to server: " + socket);
             start();
         }
@@ -73,6 +73,8 @@ public class ChatClient implements Runnable
     public void handle(Mensagem m)
     {  
         Mensagem recebida = controlador.receberMensagem(m);
+        if(recebida == null)
+            return;
         String msg = new String(recebida.getMensagem());
         // Receives message from server
         if (msg.equals(".quit"))

@@ -30,6 +30,8 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author Erbi
  */
+
+// Esta classe trata da confidencialidade das mensagens (encriptaçao, desencriptação, chaves)
 public class Confidentiality {
     private static SecretKey key;
     private static IvParameterSpec iv;
@@ -40,6 +42,7 @@ public class Confidentiality {
         iv = new IvParameterSpec(random.generateSeed(16));
     }
     
+    // Esta função é chamada sempre que é para se gerar uma chave nova
     public String regenarateKey(int verbose){
         try {
             generateKey(verbose);
@@ -49,6 +52,7 @@ public class Confidentiality {
         return key.toString();
     }
     
+    // esta função é camada sempre que é para se gerar uma chave nova com o algoritmo AES
     public void generateKey(int verbose) throws NoSuchAlgorithmException{
       KeyGenerator kg = KeyGenerator.getInstance("AES");
       SecureRandom random = new SecureRandom();
@@ -60,6 +64,9 @@ public class Confidentiality {
       }
     }
     
+    // Esta função é responsável pela encriptação de uma mensagem com o mode AES/CBC/PKCS5Padding
+    // A função recebe uma mensagem o ID e o modo verbose
+    // É responsáve por criar a classe mensagem de acordo com a mensagem recebida e retornar a mesma
     public Mensagem encrypt(final String message, int ID, int verbose) throws IllegalBlockSizeException,
     BadPaddingException, NoSuchAlgorithmException,
     NoSuchPaddingException, InvalidKeyException,
@@ -82,6 +89,9 @@ public class Confidentiality {
       return m;
     }
     
+    // Esta função é responsável pela desencriptacao de uma mensagem com o mode AES/CBC/PKCS5Padding
+    // A função recebe a mensagem encriptada, a chave de quem a encriptou, a seed iv e o ID
+    // É responsáve por criar a classe mensagem com a mensagem desencriptada
     public Mensagem decrypt(final String encrypted, final byte[] chave, final byte[] param, int ID, int verbose) throws InvalidKeyException,
     NoSuchAlgorithmException, NoSuchPaddingException,
     IllegalBlockSizeException, BadPaddingException, IOException, InvalidAlgorithmParameterException {
@@ -91,11 +101,12 @@ public class Confidentiality {
         System.out.println("[Chave] = " + new String(chave));
         System.out.println("A mensagem vai ser desencriptada");
       }
+      
       Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
       IvParameterSpec ivSpec=new IvParameterSpec(param);
       SecretKey keySpec=new SecretKeySpec(chave,"AES");
-      cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);     
-      byte[] raw = Base64.getDecoder().decode(encrypted);
+      cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);  
+      byte[] raw = Base64.getDecoder().decode(encrypted);      
       byte[] stringBytes  = cipher.doFinal(raw);
       String clearText = new String(stringBytes, "UTF8");
       Mensagem m = new Mensagem(clearText, keySpec.getEncoded(), ivSpec.getIV(), ID, verbose);
