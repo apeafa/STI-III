@@ -5,9 +5,9 @@
  */
 package Controlador;
 
+import Security.MD5;
 import java.io.Serializable;
-import java.security.Key;
-import javax.crypto.spec.IvParameterSpec;
+import java.math.BigInteger;
 
 /**
  *
@@ -18,12 +18,14 @@ public class Mensagem implements Serializable{
     byte[] chave;
     int ID;
     byte[] iv;
+    MD5 md5;
 
     public Mensagem(String mensagem, byte[] chave, byte[] iv, int ID) {
         this.mensagem = mensagem;
         this.chave = chave;
         this.iv = iv;
         this.ID = ID;
+        md5 = new MD5(mensagem);
     }
 
     public byte[] getIv() {
@@ -64,4 +66,7 @@ public class Mensagem implements Serializable{
         this.ID = ID;
     }
     
+    public BigInteger getMD5Hash(){
+        return md5.getMessageDigest();
+    }
 }

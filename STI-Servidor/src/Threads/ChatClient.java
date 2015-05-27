@@ -1,7 +1,7 @@
 package Threads;
 
 
-import Confidentiality.Confidentiality;
+import Security.Confidentiality;
 import Controlador.Controlador;
 import Controlador.Mensagem;
 import java.net.*;
@@ -20,7 +20,10 @@ public class ChatClient implements Runnable
     private ObjectOutputStream streamOut = null;
     private ChatClientThread client    = null;
     private static Controlador controlador = null;
-
+    
+    // VARIAVEIS EXTRA
+    private static int VERBOSE = 2;
+    
     public ChatClient(String serverName, int serverPort)
     {  
         System.out.println("Establishing connection to server...");
@@ -29,7 +32,7 @@ public class ChatClient implements Runnable
         {
             // Establishes connection with server (name and port)
             socket = new Socket(serverName, serverPort);
-            controlador = new Controlador();
+            controlador = new Controlador(VERBOSE);
             System.out.println("Connected to server: " + socket);
             start();
         }
