@@ -22,17 +22,24 @@ import java.math.BigInteger;
 // transporta a hash original da mensagem MD5 Check sum
 public class Mensagem implements Serializable{
     String mensagem;
-    byte[] chave;
     int ID;
     byte[] iv;
     MD5 md5;
+    byte[] chave;
 
-    public Mensagem(String mensagem, byte[] chave, byte[] iv, int ID, int verbose) {
+    public Mensagem(String mensagem, byte[] iv, int ID, int verbose) {
         this.mensagem = mensagem;
-        this.chave = chave;
         this.iv = iv;
         this.ID = ID;
         md5 = new MD5(mensagem, verbose);
+    }
+    
+    public void setChave(byte[] chave){
+        this.chave = chave;
+    }
+    
+    public byte[] getChaveDesencriptar(){
+        return chave;
     }
 
     public byte[] getIv() {
@@ -52,13 +59,6 @@ public class Mensagem implements Serializable{
         this.mensagem = mensagem;
     }
 
-    public byte[] getChave() {
-        return chave;
-    }
-
-    public void setChave(byte[] chave) {
-        this.chave = chave;
-    }
 
     @Override
     public String toString() {

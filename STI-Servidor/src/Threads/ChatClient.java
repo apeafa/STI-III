@@ -1,13 +1,10 @@
 package Threads;
 
 
-import Security.Confidentiality;
 import Controlador.Controlador;
 import Controlador.Mensagem;
 import java.net.*;
 import java.io.*;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,7 +17,6 @@ public class ChatClient implements Runnable
     private ObjectOutputStream streamOut = null;
     private ChatClientThread client    = null;
     private static Controlador controlador = null;
-    
 
     
     
@@ -32,8 +28,8 @@ public class ChatClient implements Runnable
         {
             // Establishes connection with server (name and port)
             socket = new Socket(serverName, serverPort);
-            controlador = new Controlador();
-            System.out.println("Connected to server: " + socket);
+            controlador = new Controlador();            
+            System.out.println("Connected to server: " + socket);            
             start();
         }
         
@@ -47,9 +43,12 @@ public class ChatClient implements Runnable
         {  
             // Other error establishing connection
             System.out.println("Error establishing connection - unexpected exception: " + ioexception.getMessage()); 
+        } catch (Exception ex) {
+            Logger.getLogger(ChatClient.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-   }
+   }    
+    
     
    public void run()
    {  
@@ -68,7 +67,8 @@ public class ChatClient implements Runnable
            }
        }
     }
-    
+   
+
     
     public void handle(Mensagem m)
     {  
@@ -95,6 +95,7 @@ public class ChatClient implements Runnable
     {  
         console   = new DataInputStream(System.in);
         streamOut = new ObjectOutputStream(socket.getOutputStream());
+        
         if (thread == null)
         {  
             client = new ChatClientThread(this, socket);
@@ -124,7 +125,8 @@ public class ChatClient implements Runnable
             client.close();  
             client.stop();
         }
-   
+    
+       
     
     public static void main(String args[])
     {  
@@ -136,6 +138,10 @@ public class ChatClient implements Runnable
             // Calls new client
        //     client = new ChatClient(args[0], Integer.parseInt(args[1]));
         client = new ChatClient("localhost", 3000);
+    }
+    
+    public void recebeChave(Mensagem m){
+        controlador.setKey(m.getIv());
     }
     
 }
@@ -159,12 +165,14 @@ class ChatClientThread extends Thread
         try
         {  
             streamIn  = new ObjectInputStream(socket.getInputStream());
+            
         }
         catch(IOException ioe)
         {  
             System.out.println("Error getting input stream: " + ioe);
             client.stop();
         }
+        
     }
     
     public void close()
@@ -182,6 +190,13 @@ class ChatClientThread extends Thread
     
     public void run()
     {  
+        try {
+            client.recebeChave((Mensagem)streamIn.readObject());
+        } catch (IOException ex) {
+            Logger.getLogger(ChatClientThread.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(ChatClientThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
         while (true)
         {   try
             {  

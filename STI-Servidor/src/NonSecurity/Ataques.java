@@ -8,8 +8,6 @@ package NonSecurity;
 import Controlador.Mensagem;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.crypto.KeyGenerator;
 
 /**
@@ -35,7 +33,6 @@ public class Ataques {
             kg = KeyGenerator.getInstance("AES");
             SecureRandom random = new SecureRandom();
             kg.init(random);
-            m.setChave(kg.generateKey().getEncoded());
         } catch (NoSuchAlgorithmException ex) {
             System.out.println("Erro ataque: " + ex);
         }      

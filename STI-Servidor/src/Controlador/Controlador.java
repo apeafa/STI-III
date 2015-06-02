@@ -12,12 +12,14 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 /**
  *
@@ -53,6 +55,10 @@ public class Controlador {
             }
     }
     
+    public void setKey(byte[] key){
+        conf.setKey(key);
+    }
+    
     // Esta função é responsável por tratar da recepção de mensagems dos clientes
     // a função recebe uma mensagem e irá mandar desencriptar a mesma, retornando a mensagem desencriptada
     // irá também fazer a validação da HASH do MD5 CHECK SUM
@@ -64,12 +70,12 @@ public class Controlador {
         }
         
         try {
-            desencriptado = conf.decrypt(m.getMensagem(), m.getChave(), m.getIv(), m.getID(), VERBOSE);
+            desencriptado = conf.decrypt(m.getMensagem(), m.getChaveDesencriptar(), m.getIv(), m.getID(), VERBOSE);
         } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | IOException | InvalidAlgorithmParameterException ex) {
             System.out.println("Erro: " + ex);
             return null;
         }catch(BadPaddingException | IllegalArgumentException ex2){
-            System.out.println("Impossivel tratar mensagem, Chave/Mensagem alterada");
+            System.out.println("Impossivel tratar mensagem, Chave/Mensagem alterada: " + ex2);
             return null;
         }
         
@@ -112,7 +118,7 @@ public class Controlador {
     }
     
     public String renovarChave(){
-        return conf.regenarateKey(VERBOSE);
+        return "";//conf.regenarateKey(VERBOSE);
     }
     
     public int getVerbose(){
