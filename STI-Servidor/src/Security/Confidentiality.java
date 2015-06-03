@@ -31,8 +31,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 // Esta classe trata da confidencialidade das mensagens (encriptaçao, desencriptação, chaves)
 public class Confidentiality {
-    private static SecretKey key;
-    private static IvParameterSpec iv;
+    private  SecretKey key;
+    private  IvParameterSpec iv;
     
     public Confidentiality(int verbose) throws NoSuchAlgorithmException{
         //generateKey(verbose);
@@ -40,31 +40,10 @@ public class Confidentiality {
         iv = new IvParameterSpec(random.generateSeed(8));
     }
     
-//    // Esta função é chamada sempre que é para se gerar uma chave nova
-//    public String regenarateKey(int verbose){
-//        try {
-//            generateKey(verbose);
-//        } catch (NoSuchAlgorithmException ex) {
-//            System.out.println("Impossivel gerar chave nova");
-//        }
-//        return key.toString();
-//    }
     
     public void setKey(byte[] key){
         this.key = new SecretKeySpec(key, 0, key.length, "DES");
     }
-    
-//    // esta função é camada sempre que é para se gerar uma chave nova com o algoritmo AES
-//    public void generateKey(int verbose) throws NoSuchAlgorithmException{
-//      KeyGenerator kg = KeyGenerator.getInstance("AES");
-//      SecureRandom random = new SecureRandom();
-//      kg.init(random);
-//      key = kg.generateKey();
-//      if(verbose != 1){
-//        System.out.println("[Chave criada] = " + key);
-//        System.out.println("A chave foi criada");
-//      }
-//    }
     
     // Esta função é responsável pela encriptação de uma mensagem com o mode AES/CBC/PKCS5Padding
     // A função recebe uma mensagem o ID e o modo verbose
@@ -85,10 +64,20 @@ public class Confidentiality {
         System.out.println("[Mensagem Encriptada] = " + m.getMensagem());
         System.out.println("A mensagem foi encriptada");
       }
-      System.out.println("CLIENT: " + key);
       
       return m;
     }
+    
+    public byte[] decryptByte(byte[] keyEncripted, byte[] param) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException{
+      Cipher cipher = Cipher.getInstance("DES/CBC/PKCS5Padding");
+      IvParameterSpec ivSpec=new IvParameterSpec(param);
+      
+      cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);  
+      byte[] stringBytes  = cipher.doFinal(keyEncripted);
+      return stringBytes;
+    }
+    
+    
     
     // Esta função é responsável pela desencriptacao de uma mensagem com o mode AES/CBC/PKCS5Padding
     // A função recebe a mensagem encriptada, a chave de quem a encriptou, a seed iv e o ID
@@ -102,7 +91,6 @@ public class Confidentiality {
         System.out.println("A mensagem vai ser desencriptada");
       }
       
-      System.out.println("CLIENT: " + key);
       Cipher cipher = Cipher.getInstance("DES/CBC/PKCS5Padding");
       IvParameterSpec ivSpec=new IvParameterSpec(param);
       
@@ -113,7 +101,6 @@ public class Confidentiality {
       
       SecretKey normal = new SecretKeySpec(chaveNormal, 0, chaveNormal.length, "DES");
       
-      System.out.println("CLIENT: " + normal);
       ivSpec = new IvParameterSpec(cipher.getIV());
       cipher.init(Cipher.DECRYPT_MODE, normal, ivSpec);  
       // Obter a Mensagem desencrpitando usando a chave normal
@@ -122,4 +109,6 @@ public class Confidentiality {
       Mensagem m = new Mensagem(clearText, ivSpec.getIV(), ID, verbose);
       return m;
     }
+    
+    
 }

@@ -36,6 +36,7 @@ import Threads.ChatServer;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.*;
+import java.util.ArrayList;
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import javax.crypto.interfaces.*;
@@ -51,15 +52,28 @@ import javax.crypto.interfaces.*;
  */
 
 public class DHKeyAgreement2 {
-    private ChatServer server;
-    private ChatClient client;
     int ID;
     byte [] chaveRetornoCliente;
     byte [] chaveRetornoServidor;
-    
-    public DHKeyAgreement2(ChatServer server) {
-        this.server = server;
+    byte [] chavePublica;
+    byte [] chavePrivada;
+    public DHKeyAgreement2() {
     }    
+    
+    public ArrayList getPairs(){
+        ArrayList<byte[]> myArray = new ArrayList<>();
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(1024);
+            KeyPair pair = keyGen.generateKeyPair();
+            myArray.add(pair.getPrivate().getEncoded());
+            System.out.println("PRIVADA: " + new String(pair.getPrivate().getEncoded()));
+            myArray.add(pair.getPublic().getEncoded());
+        } catch (NoSuchAlgorithmException ex) {
+            System.out.println("[MySignatureClass]: " + ex);            
+        }
+        return myArray;
+    }
     
     public void SetID(int id){
         this.ID = id;
@@ -69,7 +83,7 @@ public class DHKeyAgreement2 {
         try {
             String mode = "USE_SKIP_DH_PARAMS";
 
-            DHKeyAgreement2 keyAgree = new DHKeyAgreement2(null);
+            DHKeyAgreement2 keyAgree = new DHKeyAgreement2();
 
             if (argv.length > 1) {
                 keyAgree.usage();
@@ -87,11 +101,6 @@ public class DHKeyAgreement2 {
             System.err.println("Error: " + e);
             System.exit(1);
         }
-    }
-    
-    private void alteraDados(ChatServer server, ChatClient client){
-        this.server = server;
-        this.client = client;
     }
 
     public void run(String mode) throws Exception {
@@ -307,7 +316,7 @@ public class DHKeyAgreement2 {
             "same as cleartext");
         
         chaveRetornoServidor = bobDesKey.getEncoded();
-        chaveRetornoCliente = aliceDesKey.getEncoded();
+        chaveRetornoCliente = aliceDesKey.getEncoded();        
     }
     
     public byte[] getChaveRetornoCliente(){

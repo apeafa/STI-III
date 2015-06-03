@@ -6,8 +6,10 @@
 package Controlador;
 
 import Security.MD5;
+import Security.MySignature;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.security.Signature;
 
 /**
  *
@@ -26,12 +28,39 @@ public class Mensagem implements Serializable{
     byte[] iv;
     MD5 md5;
     byte[] chave;
-
+    byte[] mySign;
+    byte[] publicKey;
+    byte[] privateKey;
+    
     public Mensagem(String mensagem, byte[] iv, int ID, int verbose) {
         this.mensagem = mensagem;
         this.iv = iv;
         this.ID = ID;
         md5 = new MD5(mensagem, verbose);
+    }
+    
+    public void setPublicKey(byte[] key){
+        this.publicKey = key;
+    }
+    
+    public byte[] getPublicKey(){
+        return publicKey;
+    }
+    
+    public void setPrivateKey(byte[] key){
+        this.privateKey = key;
+    }
+    
+    public byte[] getPrivateKey(){
+        return privateKey;
+    }
+    
+    public void setSignature(byte[] mySign){
+        this.mySign = mySign;
+    }
+    
+    public byte[] getSignature(){
+        return mySign;
     }
     
     public void setChave(byte[] chave){

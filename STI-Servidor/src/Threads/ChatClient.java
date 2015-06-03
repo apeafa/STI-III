@@ -29,7 +29,7 @@ public class ChatClient implements Runnable
             // Establishes connection with server (name and port)
             socket = new Socket(serverName, serverPort);
             controlador = new Controlador();            
-            System.out.println("Connected to server: " + socket);            
+            System.out.println("Connected to server: " + socket);        
             start();
         }
         
@@ -72,6 +72,16 @@ public class ChatClient implements Runnable
     
     public void handle(Mensagem m)
     {  
+        if(m != null){
+            String msg = new String(m.getMensagem());
+            if(msg.equals((".UpdatePrivateKEY"))){
+                recebeChavePrivada(m);
+                return;
+            }else if(msg.equals(".UpdateNormalKey")){
+                recebeChaveNormal(m);
+                return;
+            }
+        }
         Mensagem recebida = controlador.receberMensagem(m);
         if(recebida == null)
             return;
@@ -84,8 +94,7 @@ public class ChatClient implements Runnable
             stop();
         }
         else{
-            // else, writes message received from server to console
-            
+            // else, writes message received from server to console            
             System.out.println(recebida.getID() + ": " + msg);
         }
     }
@@ -140,8 +149,17 @@ public class ChatClient implements Runnable
         client = new ChatClient("localhost", 3000);
     }
     
-    public void recebeChave(Mensagem m){
-        controlador.setKey(m.getIv());
+    public void recebeChave(Mensagem m1, Mensagem m2){
+        controlador.setKey(m1.getIv());
+        controlador.setPrivateKey(m2.getIv());
+    }
+    
+    public void recebeChaveNormal(Mensagem m1){
+        controlador.setKey(m1.getIv());
+    }
+    
+    public void recebeChavePrivada(Mensagem m2){
+        controlador.setPrivateKey(m2.getIv());
     }
     
 }
@@ -191,7 +209,9 @@ class ChatClientThread extends Thread
     public void run()
     {  
         try {
-            client.recebeChave((Mensagem)streamIn.readObject());
+            Mensagem m1 = (Mensagem)streamIn.readObject();
+            Mensagem m2 = (Mensagem)streamIn.readObject();
+            client.recebeChave(m1, m2);
         } catch (IOException ex) {
             Logger.getLogger(ChatClientThread.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ClassNotFoundException ex) {

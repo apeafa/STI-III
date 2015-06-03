@@ -8,12 +8,23 @@ package Controlador;
 import NonSecurity.Ataques;
 import Security.Confidentiality;
 import Security.MD5;
+import Security.MySignature;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.spec.EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
@@ -28,10 +39,11 @@ import javax.crypto.SecretKey;
 
 // Classe controlador é responsável por controlar as acções de cada cliente
 public class Controlador {
-    static Confidentiality conf;
+    Confidentiality conf;
+    MySignature mySignature;
     // Esta thread e variável são responsáveis pelo tempo de renovação de cada chave para cada cliente
-    Thread t;
-    private static int TIME_TO_REGENERATE_KEY = 10000;
+    
+    
     //-------------------------------------------------------------------------------------------
     private Ataques ataques;
     
@@ -39,16 +51,17 @@ public class Controlador {
     private static int VERBOSE = 1;
     private static Boolean ALTERA_MENSAGEM_PARA_MD5 = false;
     private static Boolean ALTERA_CHAVE_CONFIDENCIALIDADE = false;
+    private static Boolean ALTERA_MENSAGEM_ASSINATURA = false;
     
     public Controlador(){
         ataques = new Ataques();
+        mySignature = new MySignature();
         try {
             conf = new Confidentiality(VERBOSE);            
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(Controlador.class.getName()).log(Level.SEVERE, null, ex);
         }
-        t = new Thread(new RenewKey(this));
-        t.start();
+        
         
         if(VERBOSE != 1){
                 System.out.println("Criado controlador. Pronto para trabalhar");
@@ -59,24 +72,49 @@ public class Controlador {
         conf.setKey(key);
     }
     
+    public void setPrivateKey(byte[] privateKey){
+        mySignature.setPrivateKey(privateKey);
+    }
+    
     // Esta função é responsável por tratar da recepção de mensagems dos clientes
     // a função recebe uma mensagem e irá mandar desencriptar a mesma, retornando a mensagem desencriptada
     // irá também fazer a validação da HASH do MD5 CHECK SUM
     public Mensagem receberMensagem(Mensagem m){
         Mensagem desencriptado = null;
-        
         if(ALTERA_CHAVE_CONFIDENCIALIDADE){
             ataques.alteraChaveConfidencialidade(m, VERBOSE);
         }
-        
         try {
             desencriptado = conf.decrypt(m.getMensagem(), m.getChaveDesencriptar(), m.getIv(), m.getID(), VERBOSE);
+
+            Signature myVerifySign = Signature.getInstance("MD5withRSA");  
+            byte[] chavePublica = conf.decryptByte(m.getPublicKey(), desencriptado.iv);
+            EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(chavePublica);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey newPublicKey = keyFactory.generatePublic(publicKeySpec);            
+            myVerifySign.initVerify(newPublicKey);
+            if(ALTERA_MENSAGEM_ASSINATURA)
+                myVerifySign.update("...!!!!!".getBytes());
+            else
+                myVerifySign.update(desencriptado.getMensagem().getBytes());
+            byte[] byteSignedData = m.getSignature();
+            boolean verifySign = myVerifySign.verify(byteSignedData);
+            if (verifySign == false){
+                System.out.println("Error in validating Signature ");
+                return null;
+            }
+            else
+                System.out.println("Successfully validated Signature ");
+            
+            
         } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | IOException | InvalidAlgorithmParameterException ex) {
             System.out.println("Erro: " + ex);
             return null;
         }catch(BadPaddingException | IllegalArgumentException ex2){
             System.out.println("Impossivel tratar mensagem, Chave/Mensagem alterada: " + ex2);
             return null;
+        } catch (InvalidKeySpecException | SignatureException ex) {
+            Logger.getLogger(Controlador.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         if(ALTERA_MENSAGEM_PARA_MD5)
@@ -97,8 +135,21 @@ public class Controlador {
         
         try {
             encriptado = conf.encrypt(mensagem, 0, VERBOSE);
+            Signature mySign = Signature.getInstance("MD5withRSA");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            byte[] privada = mySignature.getPrivate();
+            
+            EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privada);
+            PrivateKey myPrivateKey = kf.generatePrivate(privateKeySpec);
+            mySign.initSign(myPrivateKey);
+            mySign.update(mensagem.getBytes());
+            byte[] byteSignedData = mySign.sign();
+            encriptado.setPrivateKey(privada);
+            encriptado.setSignature(byteSignedData);
         } catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | UnsupportedEncodingException | InvalidAlgorithmParameterException ex) {
             System.out.println("Erro: " + ex);
+        } catch (InvalidKeySpecException | SignatureException ex) {
+            Logger.getLogger(Controlador.class.getName()).log(Level.SEVERE, null, ex);
         }
         return encriptado;
     }
@@ -125,26 +176,5 @@ public class Controlador {
         return VERBOSE;
     }
 
-    // Esta classe é lançada para que a chave seja renovada de TIME_TO_REGENERATE_KEY em TIME_TO_REGENERATE_KEY tempo
-    public class RenewKey implements Runnable{
-        Controlador c;
-
-        public RenewKey(Controlador c){
-            this.c = c;
-        }
-            @Override
-            public void run() {
-                while(c != null){
-                    try {
-                        Thread.sleep(TIME_TO_REGENERATE_KEY);
-                        if(c.getVerbose() == 1)
-                            c.renovarChave();
-                        else
-                            System.out.println("Nova chave: " + c.renovarChave());
-                    } catch (InterruptedException ex) {                
-                    }
-                }
-            }
-
-    }
+    
 }

@@ -2,14 +2,20 @@ package Threads;
 
 
 import Controlador.ClientsKeys;
+import Controlador.Controlador;
 import Controlador.Mensagem;
 import Security.DHKeyAgreement2;
 import java.net.*;
 import java.io.*;
-import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,11 +37,15 @@ public class ChatServer implements Runnable
 	private int clientCount = 0;
         private ClientsKeys clientsKeys;
         private DHKeyAgreement2 keyAgreement;
+        Thread t;
+        private static int TIME_TO_REGENERATE_KEY = 10000;
 
 	public ChatServer(int port)
     	{  
-                keyAgreement = new DHKeyAgreement2(this);
+                keyAgreement = new DHKeyAgreement2();
                 clientsKeys = new ClientsKeys();
+                t = new Thread(new RenewKey(this));
+                t.start();
 		try
       		{  
             		// Binds to port and starts server
@@ -109,7 +119,7 @@ public class ChatServer implements Runnable
             return clientsKeys.getChaveFromID(ID);
         }
     
-    	public synchronized void handle(int ID, Mensagem m)
+    	public synchronized void handle(int ID, Mensagem m) throws InvalidKeySpecException
     	{   
             if(m == null)
                 return;
@@ -132,9 +142,11 @@ public class ChatServer implements Runnable
         	else
             		// Brodcast message for every other client online
             		for (int i = 0; i < clientCount; i++){
-                            try {
+                            try {                                
                                 m = encrypt(m, ID, clients[i].getID());
                                 m.setMensagem(input);
+                                m.setPublicKey(encryptByte(clientsKeys.getPublicChaveFromID(ID), clients[i].getID(), m.getIv()));
+                                m.setPrivateKey(encryptByte(clientsKeys.getPrivateChaveFromID(ID), clients[i].getID(), m.getIv()));
                                 m.setID(ID);
                                 clients[i].send(m); 
                             } catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | UnsupportedEncodingException | InvalidAlgorithmParameterException ex) {
@@ -168,8 +180,27 @@ public class ChatServer implements Runnable
         System.out.println("SERVER: " + lol);
         Mensagem m = new Mensagem(Base64.getEncoder().encodeToString(raw), iv.getIV(), ID_envia, 1);
         m.setChave(raw);
-        
+        m.setSignature(message.getSignature());
         return m;
+    }
+    
+    public byte[] encryptByte(byte[] destino, int ID_destino, byte[] ivaux) throws IllegalBlockSizeException,
+    BadPaddingException, NoSuchAlgorithmException,
+    NoSuchPaddingException, InvalidKeyException,
+    UnsupportedEncodingException, InvalidAlgorithmParameterException, InvalidKeySpecException {    
+        byte [] chaveDestino = clientsKeys.getChaveFromID(ID_destino);
+        byte[] toEncript = destino;
+        SecretKey keyDESTINO = new SecretKeySpec(chaveDestino, 0, chaveDestino.length, "DES");
+
+        IvParameterSpec iv = new IvParameterSpec(ivaux);
+        Cipher cipher = Cipher.getInstance("DES/CBC/PKCS5Padding");
+      cipher.init(Cipher.ENCRYPT_MODE, keyDESTINO, iv);
+      
+      byte[] stringBytes = toEncript;
+
+      byte[] raw = cipher.doFinal(stringBytes);
+      
+      return raw;
     }
     
     	public synchronized void remove(int ID)
@@ -212,11 +243,18 @@ public class ChatServer implements Runnable
                             } catch (Exception ex) {
                                 Logger.getLogger(ChatServer.class.getName()).log(Level.SEVERE, null, ex);
                             }
-            		clients[clientCount] = new ChatServerThread(this, socket, keyAgreement.getChaveRetornoCliente());
+                        
+                        ArrayList<byte[]> pairs = keyAgreement.getPairs();
+                        clientsKeys.setPrivateKey(socket.getPort(), pairs.get(0));
+                        clientsKeys.setPublicKey(socket.getPort(), pairs.get(1));
+                        
+            		clients[clientCount] = new ChatServerThread(this, socket, keyAgreement.getChaveRetornoCliente(), pairs.get(0));
                         
                         inserirSecretKey(socket.getPort(), keyAgreement.getChaveRetornoServidor());
                         
-                            
+                        System.out.println("Normal: " + keyAgreement.getChaveRetornoServidor());
+                        System.out.println("Private: " + pairs.get(0));
+                        
            		try
             		{  
                 		clients[clientCount].open(); 
@@ -245,6 +283,52 @@ public class ChatServer implements Runnable
             	//	server = new ChatServer(Integer.parseInt(args[0]));
                 server = new ChatServer(3000);
     	}
+        
+        public void renovaChave(){
+            clientsKeys.clearAll();
+            for (int i = 0; i < clientCount; i++){
+                keyAgreement.SetID(clients[i].getID());
+                try {
+                    keyAgreement.run("");
+                } catch (Exception ex) {
+                    Logger.getLogger(ChatServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                        
+                ArrayList<byte[]> pairs = keyAgreement.getPairs();
+                
+                clientsKeys.setPrivateKey(clients[i].getID(), pairs.get(0));
+                clientsKeys.setPublicKey(clients[i].getID(), pairs.get(1));
+                inserirSecretKey(clients[i].getID(), keyAgreement.getChaveRetornoServidor());
+                Mensagem m = new Mensagem(".UpdatePrivateKEY", pairs.get(0), 0, 0);
+                clients[i].send(m);
+                m = new Mensagem(".UpdateNormalKey", keyAgreement.getChaveRetornoServidor(), 0, 0);
+                clients[i].send(m);
+                
+                System.out.println("Chaves Renovadas");
+                //System.out.println("Normal: " + keyAgreement.getChaveRetornoServidor());
+                //System.out.println("Private: " + pairs.get(0));
+            }
+        }
+        
+        // Esta classe é lançada para que a chave seja renovada de TIME_TO_REGENERATE_KEY em TIME_TO_REGENERATE_KEY tempo
+    public class RenewKey implements Runnable{
+        ChatServer c;
+
+        public RenewKey(ChatServer c){
+            this.c = c;
+        }
+            @Override
+            public void run() {
+                while(c != null){
+                    try {
+                        Thread.sleep(TIME_TO_REGENERATE_KEY);
+                        c.renovaChave();
+                    } catch (InterruptedException ex) {                
+                    }
+                }
+            }
+
+    }
 
 }
 
@@ -256,14 +340,16 @@ class ChatServerThread extends Thread
     private ObjectInputStream  streamIn  =  null;
     private ObjectOutputStream streamOut = null;
     private byte[] chave;
+    private byte[] privada;
     
-    public ChatServerThread(ChatServer _server, Socket _socket, byte[] chave)
+    public ChatServerThread(ChatServer _server, Socket _socket, byte[] chave, byte[] privada)
     {  
         super();
         server = _server;
         socket = _socket;
         ID     = socket.getPort();            
         this.chave = chave;
+        this.privada = privada;
     }
     
     // Sends message to client
@@ -296,6 +382,7 @@ class ChatServerThread extends Thread
         
         try {
             streamOut.writeObject(new Mensagem("", chave, 0, 0));
+            streamOut.writeObject(new Mensagem("", privada, 0, 0));
         } catch (IOException ex) {
         }
         
@@ -312,6 +399,8 @@ class ChatServerThread extends Thread
                 server.remove(ID);
                 stop();
             } catch (ClassNotFoundException ex) {
+                Logger.getLogger(ChatServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InvalidKeySpecException ex) {
                 Logger.getLogger(ChatServerThread.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
