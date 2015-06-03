@@ -68,6 +68,7 @@ public class Confidentiality {
       return m;
     }
     
+    // Código que recebe uma chave encriptada e a desencripta retornando o seu array de bytes
     public byte[] decryptByte(byte[] keyEncripted, byte[] param) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException{
       Cipher cipher = Cipher.getInstance("DES/CBC/PKCS5Padding");
       IvParameterSpec ivSpec=new IvParameterSpec(param);

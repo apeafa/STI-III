@@ -5,38 +5,17 @@
  */
 package Security;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SecureRandom;
-import java.security.Signature;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  *
  * @author Erbi
  */
+
+// Esta classe server para guardar a chave privada do cliente
 public class MySignature{
     byte[] myPrivateKey;
     
     public MySignature(){   
     }   
-    
-    public byte[] generatePrivate(){
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
-            SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
-            keyGen.initialize(1024, random);
-            KeyPair pair = keyGen.generateKeyPair();
-            myPrivateKey = pair.getPrivate().getEncoded();
-            return pair.getPublic().getEncoded();
-        } catch (NoSuchAlgorithmException | NoSuchProviderException ex) {
-            System.out.println("[MySignatureClass]: " + ex);            
-        }
-        return null;
-    }
     
     public void setPrivateKey(byte[] privatekey){
         myPrivateKey = privatekey;

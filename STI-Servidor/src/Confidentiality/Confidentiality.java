@@ -45,6 +45,7 @@ public class Confidentiality {
       key = kg.generateKey();
     }
     
+    // Código que encripta uma mensagem em String. Retorna a classe mensagem
     public Mensagem encrypt(final String message, int ID) throws IllegalBlockSizeException,
     BadPaddingException, NoSuchAlgorithmException,
     NoSuchPaddingException, InvalidKeyException,
@@ -56,14 +57,11 @@ public class Confidentiality {
       byte[] stringBytes = message.getBytes();
 
       byte[] raw = cipher.doFinal(stringBytes);
-      
-      //System.out.println("Encriptado: " + new String(raw));
-      //System.out.println("key: " + key);
-      //System.out.println("ar: " + stringBytes);
-      Mensagem m = new Mensagem(Base64.getEncoder().encodeToString(raw), key.getEncoded(), iv.getIV(), ID);
+      Mensagem m = new Mensagem(Base64.getEncoder().encodeToString(raw), iv.getIV(), ID, 0);
       return m;
     }
     
+    // Código que desencripta uma mensagem em String. Retorna a classe mensagem com a mensagem já legivel
     public Mensagem decrypt(final String encrypted, final byte[] chave, final byte[] param, int ID) throws InvalidKeyException,
     NoSuchAlgorithmException, NoSuchPaddingException,
     IllegalBlockSizeException, BadPaddingException, IOException, InvalidAlgorithmParameterException {
@@ -72,14 +70,10 @@ public class Confidentiality {
       IvParameterSpec ivSpec=new IvParameterSpec(param);
       SecretKey keySpec=new SecretKeySpec(chave,"AES");
       cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);     
-      //System.out.println("Encriptado: " + encrypted);
-      //System.out.println("Aey: " + chave);
       byte[] raw = Base64.getDecoder().decode(encrypted);
-      //System.out.println("ar: " + stringBytes);
       byte[] stringBytes  = cipher.doFinal(raw);
-      //System.out.println("FEITO");
       String clearText = new String(stringBytes, "UTF8");
-      Mensagem m = new Mensagem(clearText, keySpec.getEncoded(), ivSpec.getIV(), ID);
+      Mensagem m = new Mensagem(clearText, ivSpec.getIV(), ID, 0);
       return m;
     }
 }
