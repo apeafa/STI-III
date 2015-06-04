@@ -9,9 +9,11 @@ import java.net.*;
 import java.io.*;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -22,6 +24,7 @@ import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -38,7 +41,8 @@ public class ChatServer implements Runnable
         private ClientsKeys clientsKeys;
         private DHKeyAgreement2 keyAgreement;
         Thread t;
-        private static int TIME_TO_REGENERATE_KEY = 10000;
+        private static int TIME_TO_REGENERATE_KEY = 999999999;
+        private static SecretKey key;
 
 	public ChatServer(int port)
     	{  
@@ -63,6 +67,8 @@ public class ChatServer implements Runnable
               
           
     	}
+        
+      
         
     	public void run()
     	{  
@@ -176,8 +182,6 @@ public class ChatServer implements Runnable
         
         // Encriptar a chave de ORIGEM com a chave DESTINO
         byte[] raw = cipher.doFinal(chaveOrigem); 
-        SecretKey lol = new SecretKeySpec(chaveDestino, 0, chaveDestino.length, "DES");
-        System.out.println("SERVER: " + lol);
         Mensagem m = new Mensagem(Base64.getEncoder().encodeToString(raw), iv.getIV(), ID_envia, 1);
         m.setChave(raw);
         m.setSignature(message.getSignature());

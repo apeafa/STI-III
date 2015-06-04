@@ -82,7 +82,8 @@ public class Controlador {
     public Mensagem receberMensagem(Mensagem m){
         Mensagem desencriptado = null;
         if(ALTERA_CHAVE_CONFIDENCIALIDADE){
-            ataques.alteraChaveConfidencialidade(m, VERBOSE);
+            byte[] key = ataques.alteraChaveConfidencialidade(m, VERBOSE);
+            m.setChave(key);
         }
         try {
             desencriptado = conf.decrypt(m.getMensagem(), m.getChaveDesencriptar(), m.getIv(), m.getID(), VERBOSE);

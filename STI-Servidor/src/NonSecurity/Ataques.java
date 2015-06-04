@@ -9,6 +9,7 @@ import Controlador.Mensagem;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 /**
  *
@@ -25,16 +26,18 @@ public class Ataques {
         return m;
     }
     
-    public void alteraChaveConfidencialidade(Mensagem m, int verbose){
+    public byte[] alteraChaveConfidencialidade(Mensagem m, int verbose){
         if(verbose != 1)
             System.out.println("A CHAVE IRA SER ALTERADA COM ESTE ATAQUE");
-      KeyGenerator kg;
+            KeyGenerator kg;
         try {
             kg = KeyGenerator.getInstance("AES");
             SecureRandom random = new SecureRandom();
             kg.init(random);
+            return kg.generateKey().getEncoded();
         } catch (NoSuchAlgorithmException ex) {
             System.out.println("Erro ataque: " + ex);
         }      
+        return null;
     }
 }
